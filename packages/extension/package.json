@@ -1,0 +1,23 @@
+{
+    "name": "sigx-devtools-extension",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Chrome DevTools extension for SignalX",
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite build --watch",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@sigx/devtools": "workspace:^",
+        "@sigx/reactivity": "^0.4.4",
+        "@sigx/runtime-core": "^0.4.4",
+        "sigx": "^0.4.4"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.270",
+        "typescript": "^5.9.0",
+        "vite": "^8.0.11"
+    }
+}

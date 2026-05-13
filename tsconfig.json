@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "strict": true,
+        "jsx": "react-jsx",
+        "jsxImportSource": "@sigx/runtime-core",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+        "packages/*/src/**/*.ts",
+        "packages/*/src/**/*.tsx",
+        "packages/*/__tests__/**/*.ts",
+        "packages/*/__tests__/**/*.tsx"
+    ],
+    "exclude": ["node_modules", "**/dist", "**/dist-panel", "**/dist-server"]
+}

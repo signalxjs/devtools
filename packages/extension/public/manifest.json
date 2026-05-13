@@ -1,0 +1,22 @@
+{
+    "manifest_version": 3,
+    "name": "SignalX DevTools",
+    "version": "0.0.1",
+    "description": "Inspect SignalX apps — component tree, props, state.",
+    "minimum_chrome_version": "102",
+    "devtools_page": "devtools.html",
+    "background": {
+        "service_worker": "service-worker.js",
+        "type": "module"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content-script.js"],
+            "run_at": "document_start",
+            "all_frames": false
+        }
+    ],
+    "permissions": [],
+    "host_permissions": []
+}

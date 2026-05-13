@@ -1,0 +1,7 @@
+[
+  {
+    "name": "@sigx/devtools",
+    "path": "packages/devtools/dist/index.js",
+    "limit": "8 KB"
+  }
+]

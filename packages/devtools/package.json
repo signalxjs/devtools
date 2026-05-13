@@ -1,0 +1,54 @@
+{
+    "name": "@sigx/devtools",
+    "version": "0.0.1",
+    "description": "DevTools client plugin for SignalX — bridges runtime events to inspectors over a transport-agnostic protocol",
+    "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": {
+            "import": "./dist/index.js",
+            "types": "./dist/index.d.ts"
+        }
+    },
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "vite build && tsgo --emitDeclarationOnly",
+        "dev": "vite build --watch",
+        "prepublishOnly": "pnpm run build"
+    },
+    "keywords": [
+        "sigx",
+        "devtools",
+        "debugging",
+        "inspector"
+    ],
+    "author": "Andreas Ekdahl",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/signalxjs/devtools.git",
+        "directory": "packages/devtools"
+    },
+    "homepage": "https://github.com/signalxjs/devtools/tree/main/packages/devtools",
+    "bugs": {
+        "url": "https://github.com/signalxjs/devtools/issues"
+    },
+    "sideEffects": false,
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    },
+    "peerDependencies": {
+        "@sigx/reactivity": "^0.4.4",
+        "@sigx/runtime-core": "^0.4.4"
+    },
+    "devDependencies": {
+        "@sigx/reactivity": "^0.4.4",
+        "@sigx/runtime-core": "^0.4.4",
+        "@sigx/vite": "^0.4.4",
+        "typescript": "^6.0.3",
+        "vite": "^8.0.11"
+    }
+}
