@@ -5,25 +5,33 @@ import { copyFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 /**
  * Multi-entry build for the Chrome MV3 extension.
  *
- * Three independent bundles ship in `dist/`:
- *   - panel/index.js      (loaded by panel.html, the devtools panel UI)
- *   - devtools/index.js   (loaded by devtools.html, registers the panel)
- *   - content-script.js   (injected by Chrome into matched pages)
- *   - service-worker.js   (MV3 background)
+ * Bundles emitted into `dist/`:
+ *   - assets/panel-*.js     (loaded by panel.html, the devtools panel UI)
+ *   - assets/devtools-*.js  (loaded by devtools.html, registers the panel)
+ *   - content-script.js     (injected into matched pages)
+ *   - service-worker.js     (MV3 background)
  *
  * Each entry is built as an IIFE-free ESM module. The panel and devtools
  * HTML files are emitted via Vite's HTML entry mechanism; the
  * content-script and service-worker are emitted as raw JS modules.
  *
- * The manifest.json is copied as a static asset from `public/`.
+ * The manifest and icons are copied as static assets from `public/`.
+ *
+ * Mode-aware:
+ *   - `vite build` (default mode = production) → minified, with .map files.
+ *   - `vite build --mode development` → unminified, faster watch iteration.
  */
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     build: {
         outDir: 'dist',
         emptyOutDir: true,
-        // No minification by default — easier to debug an unpacked extension.
-        // The user can flip this on once the build is stable.
-        minify: false,
+        // Minify in production for the store upload; leave dev unminified
+        // so iteration is fast and stack traces stay readable without a
+        // sourcemap round-trip. Source maps ship in both modes — Chrome
+        // Web Store reviewers (and anyone debugging via devtools-on-
+        // devtools) need them, and they're not loaded by end users.
+        minify: mode === 'production' ? 'esbuild' : false,
+        sourcemap: true,
         rollupOptions: {
             input: {
                 panel: resolve(__dirname, 'panel.html'),
@@ -32,9 +40,9 @@ export default defineConfig({
                 'service-worker': resolve(__dirname, 'src/background/service-worker.ts'),
             },
             output: {
-                // Flatten file names so the manifest can reference them
-                // without subdirectories (Chrome doesn't care, but a
-                // stable layout makes debugging easier).
+                // Flat top-level names for the two scripts the manifest
+                // references directly. Everything else goes under
+                // assets/ with content-hashed names.
                 entryFileNames: chunk => {
                     if (chunk.name === 'content-script') return 'content-script.js';
                     if (chunk.name === 'service-worker') return 'service-worker.js';
@@ -52,9 +60,9 @@ export default defineConfig({
     plugins: [
         {
             // Copies everything under public/ to dist/ (manifest.json,
-            // icon.png, etc.). Vite's default publicDir handling skips
-            // these in some multi-entry configs, so we mirror the
-            // directory explicitly.
+            // icon.png, icon-{16,32,48,128}.png). Vite's default
+            // publicDir handling skips these in some multi-entry
+            // configs, so we mirror the directory explicitly.
             name: 'copy-public',
             closeBundle() {
                 const src = resolve(__dirname, 'public');
@@ -68,4 +76,4 @@ export default defineConfig({
             },
         },
     ],
-});
+}));

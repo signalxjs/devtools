@@ -8,6 +8,7 @@ dist/
 dist-panel/
 dist-server/
 build/
+release/
 *.tsbuildinfo
 
 # Logs
