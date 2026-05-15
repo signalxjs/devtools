@@ -7,10 +7,13 @@
  * panel can talk to directly in MV3, so it acts as the router.
  *
  * Connection lifecycle:
- *   - Lazy: we don't open a port until the page actually emits a sigx
- *     message. Avoids creating ports on every page Chrome ever loads.
- *   - On port disconnect (e.g. service worker restarted), we re-open
- *     transparently on the next outbound message.
+ *   - **First-time**: lazy — we don't open a port until the page emits
+ *     a sigx message. Avoids creating ports on every page Chrome loads.
+ *   - **After disconnect**: proactive — once a page has proven it uses
+ *     SigX, we keep the port alive across SW restarts so the panel can
+ *     reach the page even when the page itself is momentarily idle.
+ *     Without this, after Chrome killed the SW the panel was stranded
+ *     until the user reloaded the page.
  *
  * Note: `window.postMessage` is one of the rare APIs that crosses the
  * page-world ↔ isolated-world boundary in Chrome MV3, so no
@@ -33,20 +36,59 @@ function isEnvelope(value: unknown): value is WireEnvelope {
 }
 
 let port: chrome.runtime.Port | null = null;
+/** Flips true after the first successful connect. Used to gate the
+ *  proactive reconnect logic — we don't want to keep a port alive on
+ *  every page in the browser, only ones that have shown they use SigX. */
+let everConnected = false;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectDelayMs = 250;
+
+function clearReconnect() {
+    if (reconnectTimer !== null) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+}
+
+function scheduleReconnect() {
+    if (reconnectTimer !== null) return;
+    const delay = reconnectDelayMs;
+    reconnectDelayMs = Math.min(reconnectDelayMs * 2, 5_000);
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        try {
+            getPort();
+        } catch {
+            // Extension context invalidated (e.g. on update). Stop
+            // trying — nothing we can do until the page is reloaded.
+        }
+    }, delay);
+}
 
 function getPort(): chrome.runtime.Port {
     if (port) return port;
-    port = chrome.runtime.connect({ name: 'sigx-devtools:content-script' });
-    port.onDisconnect.addListener(() => {
-        port = null;
+    const p = chrome.runtime.connect({ name: 'sigx-devtools:content-script' });
+    port = p;
+    everConnected = true;
+    reconnectDelayMs = 250;
+    clearReconnect();
+
+    p.onDisconnect.addListener(() => {
+        if (port === p) port = null;
+        // Reopen straight away if we've seen SigX on this page. The
+        // panel may be sitting on a disconnected state waiting for
+        // us — without this, it can't recover until the page itself
+        // emits an outbound message.
+        if (everConnected) scheduleReconnect();
     });
-    port.onMessage.addListener((msg: unknown) => {
+
+    p.onMessage.addListener((msg: unknown) => {
         // From the panel side, headed for the page. Re-wrap and post
         // into the page world.
         const envelope: WireEnvelope = { __sigx: TAG, dir: 'to-page', msg };
         window.postMessage(envelope, '*');
     });
-    return port;
+    return p;
 }
 
 window.addEventListener('message', event => {
