@@ -74,7 +74,10 @@ function getPort(): chrome.runtime.Port {
     clearReconnect();
 
     p.onDisconnect.addListener(() => {
-        if (port === p) port = null;
+        // Stale disconnects (port has already been replaced by a newer
+        // connection) shouldn't churn the reconnect timer/backoff.
+        if (port !== p) return;
+        port = null;
         // Reopen straight away if we've seen SigX on this page. The
         // panel may be sitting on a disconnected state waiting for
         // us — without this, it can't recover until the page itself

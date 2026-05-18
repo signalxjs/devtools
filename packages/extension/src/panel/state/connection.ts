@@ -99,15 +99,18 @@ export function createConnection(tabId: number): Connection {
         // the page-side plugin to emit something on its own. The page
         // answers `get:apps` regardless of whether any app has mounted
         // yet — an empty list is still a valid response.
+        const probeId = nextRequestId++;
+        pending.set(probeId, {
+            resolve: () => { pending.delete(probeId); },
+            reject:  () => { pending.delete(probeId); },
+        });
         try {
-            const probeId = nextRequestId++;
-            pending.set(probeId, {
-                resolve: () => { pending.delete(probeId); },
-                reject:  () => { pending.delete(probeId); },
-            });
             p.postMessage({ t: 'get:apps', id: probeId });
         } catch {
-            // Port wasn't usable — onDisconnect will fire.
+            // Port wasn't usable — onDisconnect will fire to reject any
+            // remaining pending entries, but drop ours now so we don't
+            // leak the slot if disconnect somehow never arrives.
+            pending.delete(probeId);
         }
     }
 
