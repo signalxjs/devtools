@@ -14,6 +14,7 @@
         "build:extension": "pnpm --filter sigx-devtools-extension run build",
         "build:inspector": "pnpm --filter sigx-devtools-inspector run build",
         "pack:extension": "pnpm --filter sigx-devtools-extension run pack",
+        "dev:example": "pnpm --filter sigx-devtools-example run dev",
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",

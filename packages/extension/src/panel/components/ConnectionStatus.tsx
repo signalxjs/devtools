@@ -37,7 +37,7 @@ export const ConnectionStatus = component(() => {
                     background: COLORS[status],
                 }} />
                 <span>{LABELS[status]}</span>
-                {status === 'disconnected' && (
+                {status !== 'connected' && (
                     <button
                         style={{ marginLeft: 'auto', fontSize: '11px' }}
                         onClick={() => panel().connection.reconnect()}
