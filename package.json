@@ -9,6 +9,7 @@
         "packages/*"
     ],
     "scripts": {
+        "wt": "node scripts/worktree.mjs",
         "build": "pnpm --filter @sigx/devtools run build && pnpm --filter sigx-devtools-extension run build && pnpm --filter sigx-devtools-inspector run build",
         "build:plugin": "pnpm --filter @sigx/devtools run build",
         "build:extension": "pnpm --filter sigx-devtools-extension run build",
