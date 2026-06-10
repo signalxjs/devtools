@@ -82,6 +82,19 @@ export interface StoreMutationEvent {
     at: number;
 }
 
+/**
+ * Wire shape for store custom events (`defineEvents` topics). Additive
+ * over protocol v1 — panels that don't know `store:event` ignore it.
+ */
+export interface StoreCustomEvent {
+    storeName: string;
+    /** Event key as declared in the store's event map. */
+    event: string;
+    /** Serialized event payload. */
+    data: SerializedValue;
+    at: number;
+}
+
 /** Wire shape for router navigations. */
 export interface RouterNavEvent {
     fromPath: string | null;
@@ -104,6 +117,7 @@ export type PageEvent =
     | { t: 'reactive:disposed';  payload: { id: number } }
     | { t: 'store:action';       payload: StoreActionEvent }
     | { t: 'store:mutation';     payload: StoreMutationEvent }
+    | { t: 'store:event';        payload: StoreCustomEvent }
     | { t: 'router:nav';         payload: RouterNavEvent }
     | { t: 'value:resolved';     payload: { ref: ValueRef; value: SerializedValue } };
 

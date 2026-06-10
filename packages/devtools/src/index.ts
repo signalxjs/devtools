@@ -24,6 +24,7 @@ export type {
     ReactivePrimitiveKind,
     StoreActionEvent,
     StoreMutationEvent,
+    StoreCustomEvent,
     RouterNavEvent,
     SerializedValue,
     AppId,

@@ -6,8 +6,9 @@
  * us a subscriber to that signal — we get a fresh callback on every
  * navigation without any router-internal coupling.
  *
- * Duck-typed for the same reason as `observeStore`: we don't want a
- * hard dependency on the user's exact router version.
+ * Duck-typed so we don't take a hard dependency on the user's exact
+ * router version. (Stores, by contrast, are discovered through the
+ * core inspection registry — see observe-stores.ts.)
  */
 
 import { effect } from '@sigx/reactivity';
