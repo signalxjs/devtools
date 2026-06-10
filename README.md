@@ -33,7 +33,7 @@ defineApp(<App />)
     .mount('#app');
 ```
 
-Then open DevTools on your app's tab and look for the **SignalX** panel. Full setup for the browser, Lynx, and Node transports lives at <https://sigx.dev/devtools/>.
+Then — with the SignalX DevTools browser extension installed — open your browser's DevTools on the app's tab and look for the **SignalX** panel. Full setup for the browser extension, Lynx, and Node transports lives at <https://sigx.dev/devtools/>.
 
 ## Part of SignalX
 
