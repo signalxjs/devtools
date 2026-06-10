@@ -32,7 +32,7 @@
         "url": "git+https://github.com/signalxjs/devtools.git",
         "directory": "packages/devtools"
     },
-    "homepage": "https://github.com/signalxjs/devtools/tree/main/packages/devtools",
+    "homepage": "https://sigx.dev/devtools/",
     "bugs": {
         "url": "https://github.com/signalxjs/devtools/issues"
     },
