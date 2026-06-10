@@ -55,20 +55,10 @@ import { ValueRefTable } from './value-refs.js';
 import { serialize } from './serialize.js';
 import type { Transport } from './transport.js';
 import { createPostMessageTransport } from './transport-postmessage.js';
-import { observeStore } from './observe-store.js';
+import { observeStores } from './observe-stores.js';
 import { observeRouter } from './observe-router.js';
 
 const AGENT_VERSION = '0.0.3';
-
-/**
- * Anything that quacks like a @sigx/store result. The plugin
- * duck-types this — see observe-store.ts for the full expected shape.
- */
-interface DevtoolsObservableStore {
-    name?: string;
-    actions?: unknown;
-    events?: unknown;
-}
 
 /**
  * Anything that quacks like a @sigx/router result.
@@ -89,11 +79,14 @@ export interface DevtoolsOptions {
      */
     appName?: string;
     /**
-     * Stores to observe for action and mutation events. Register each
-     * @sigx/store result here to see its activity in the panel's
-     * timeline. Optional — components inspection works without any.
+     * Whether to discover and observe @sigx/store instances through
+     * the core inspection registry (`@sigx/runtime-core/inspect`).
+     * Stores register their state/action/event topics there, so
+     * existing AND future stores are picked up automatically — no
+     * per-store wiring. Note that observing activates the stores'
+     * refCount state watchers (pay-when-observed). Default `true`.
      */
-    stores?: DevtoolsObservableStore[];
+    includeStores?: boolean;
     /**
      * Router instance to observe for navigation events. Optional.
      */
@@ -474,20 +467,16 @@ export function devtools(options: DevtoolsOptions = {}): Plugin<void> {
             });
 
             // ---- Optional store/router observers ----
-            // These attach to the user's store and router instances
-            // and translate their existing public events into wire
-            // messages. We don't modify @sigx/store or @sigx/router
-            // at all — that keeps version coupling loose.
+            // Stores are discovered through the core inspection
+            // registry — no per-store handles, no dependency on
+            // @sigx/store itself. The router observer still attaches
+            // to the user's router instance.
             const observerDisposers: Array<() => void> = [];
-            if (options.stores) {
-                for (let i = 0; i < options.stores.length; i++) {
-                    const store = options.stores[i];
-                    observerDisposers.push(observeStore(store as Parameters<typeof observeStore>[0], {
-                        nextId: () => hook.nextId(),
-                        send,
-                        defaultName: `store#${i}`,
-                    }));
-                }
+            if (options.includeStores !== false) {
+                observerDisposers.push(observeStores({
+                    nextId: () => hook.nextId(),
+                    send,
+                }));
             }
             if (options.router) {
                 observerDisposers.push(observeRouter(options.router, { send }));
