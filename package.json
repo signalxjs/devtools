@@ -53,7 +53,7 @@
         "type": "git",
         "url": "git+https://github.com/signalxjs/devtools.git"
     },
-    "homepage": "https://github.com/signalxjs/devtools",
+    "homepage": "https://sigx.dev/devtools/",
     "bugs": {
         "url": "https://github.com/signalxjs/devtools/issues"
     }
