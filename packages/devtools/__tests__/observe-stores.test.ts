@@ -10,13 +10,14 @@
  *                            `${action}.onFailure`   (payload `{ error, args }`)
  *   - `${storeId}.events`  / name = event key      / payload = user data
  *
- * The registry is realm-global, so every test destroys all registered
- * topics in afterEach.
+ * The registry is realm-global, so each test snapshots it up front and
+ * destroys only the topics it created.
  */
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { createTopic, createTopicGroup } from '@sigx/runtime-core';
 import { listTopics } from '@sigx/runtime-core/inspect';
+import type { Topic } from '@sigx/runtime-core';
 import { observeStores } from '../src/observe-stores';
 import type {
     PageEvent,
@@ -71,11 +72,20 @@ function tracked() {
     return s;
 }
 
+// The inspection registry is realm-global — only destroy the topics THIS
+// test created, so concurrently-registered topics from other suites are
+// never torn down from under them.
+let preexisting: Set<Topic<unknown>>;
+
+beforeEach(() => {
+    preexisting = new Set(listTopics());
+});
+
 afterEach(() => {
     for (const d of disposers.splice(0)) d();
-    // The inspection registry is realm-global — drop every topic so
-    // tests stay independent.
-    for (const t of listTopics()) t.destroy();
+    for (const t of listTopics()) {
+        if (!preexisting.has(t)) t.destroy();
+    }
 });
 
 describe('observeStores', () => {
