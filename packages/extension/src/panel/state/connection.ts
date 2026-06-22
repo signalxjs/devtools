@@ -5,9 +5,17 @@
  * tab's id. The SW routes messages to/from the content script in that
  * tab, which in turn bridges to the page-world @sigx/devtools plugin.
  *
- * The port may disconnect — typically when the service worker restarts.
- * We handle that transparently: a single `reconnect()` re-opens and
- * resends a `get:apps` probe so the panel state catches up.
+ * MV3 service workers are killed after ~30s idle, dragging the port
+ * down with them. We defend in two places:
+ *
+ *   1. Any inbound message — not just `hello` — flips us to `connected`.
+ *      The page-side plugin emits `hello` exactly once at install, so
+ *      a panel that attached after the page bootstrapped (or after a
+ *      reconnect) never saw it. A simple `get:apps` probe round-trip
+ *      is now what confirms liveness.
+ *   2. The content script auto-reconnects to the SW on disconnect, so
+ *      after a SW death the route from panel → page is restored
+ *      without needing the page to emit anything on its own.
  */
 
 import { signal } from '@sigx/reactivity';
@@ -29,7 +37,8 @@ export interface Connection {
     request<T = unknown>(req: PanelRequestInput): Promise<T>;
     /** Subscribe to push-style events from the page. */
     onEvent(listener: (event: PageEvent) => void): () => void;
-    /** Force a reconnect (used after `disconnected` state). */
+    /** Force a reconnect (used after `disconnected` state, or to retry
+     *  a stuck `connecting`). */
     reconnect(): void;
 }
 
@@ -49,12 +58,18 @@ export function createConnection(tabId: number): Connection {
 
     function open() {
         status.value = 'connecting';
-        port = chrome.runtime.connect({ name: `sigx-devtools:panel:${tabId}` });
 
-        port.onMessage.addListener((msg: Inbound) => {
-            // Heuristic: a `response`/`error` carries a numeric `id`
-            // matching an outstanding request; anything else is a
-            // push event from the page.
+        const p = chrome.runtime.connect({ name: `sigx-devtools:panel:${tabId}` });
+        port = p;
+
+        p.onMessage.addListener((msg: Inbound) => {
+            // Any inbound message proves the wire is alive end-to-end
+            // (SW → content script → page → and back). The original
+            // code only flipped on `hello`, but the plugin emits hello
+            // exactly once at install — so a panel that reconnected
+            // after the page bootstrapped never saw it.
+            if (status.value !== 'connected') status.value = 'connected';
+
             if ((msg as PanelResponse).t === 'response' || (msg as PanelResponse).t === 'error') {
                 const r = msg as PanelResponse;
                 const slot = pending.get(r.id);
@@ -64,12 +79,7 @@ export function createConnection(tabId: number): Connection {
                 else slot.reject(new Error(r.message));
                 return;
             }
-            // Push event. The presence of a `hello` event also tells
-            // us the page side is reachable.
             const event = msg as PageEvent;
-            if (event.t === 'hello' && status.value !== 'connected') {
-                status.value = 'connected';
-            }
             for (const l of eventListeners) {
                 try { l(event); } catch (err) {
                     console.error('[sigx-panel] event listener threw:', err);
@@ -77,15 +87,31 @@ export function createConnection(tabId: number): Connection {
             }
         });
 
-        port.onDisconnect.addListener(() => {
+        p.onDisconnect.addListener(() => {
+            if (port !== p) return;
             port = null;
             status.value = 'disconnected';
-            // Reject any outstanding requests so the panel doesn't hang.
-            for (const [id, slot] of pending) {
-                slot.reject(new Error('disconnected'));
-                pending.delete(id);
-            }
+            for (const [id, slot] of pending) slot.reject(new Error('disconnected'));
+            pending.clear();
         });
+
+        // Probe the page so we can confirm liveness without waiting for
+        // the page-side plugin to emit something on its own. The page
+        // answers `get:apps` regardless of whether any app has mounted
+        // yet — an empty list is still a valid response.
+        const probeId = nextRequestId++;
+        pending.set(probeId, {
+            resolve: () => { pending.delete(probeId); },
+            reject:  () => { pending.delete(probeId); },
+        });
+        try {
+            p.postMessage({ t: 'get:apps', id: probeId });
+        } catch {
+            // Port wasn't usable — onDisconnect will fire to reject any
+            // remaining pending entries, but drop ours now so we don't
+            // leak the slot if disconnect somehow never arrives.
+            pending.delete(probeId);
+        }
     }
 
     open();
@@ -116,7 +142,13 @@ export function createConnection(tabId: number): Connection {
             return () => { eventListeners.delete(listener); };
         },
         reconnect() {
-            if (port) return;
+            // Allow forcing a reconnect from any state. If a stale port
+            // is still around, tear it down first so the new open()
+            // sees `port === null`.
+            if (port) {
+                try { port.disconnect(); } catch { /* noop */ }
+                port = null;
+            }
             open();
         },
     };

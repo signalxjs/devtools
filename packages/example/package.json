@@ -1,0 +1,20 @@
+{
+    "name": "sigx-devtools-example",
+    "version": "0.0.1",
+    "private": true,
+    "description": "Tiny SigX app for exercising the devtools panel during development.",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build"
+    },
+    "dependencies": {
+        "@sigx/devtools": "workspace:^",
+        "sigx": "^0.4.4"
+    },
+    "devDependencies": {
+        "@sigx/vite": "^0.4.4",
+        "typescript": "^6.0.3",
+        "vite": "^8.0.11"
+    }
+}

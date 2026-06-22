@@ -48,6 +48,25 @@ importers:
         specifier: ^8.0.11
         version: 8.0.12(@types/node@22.19.19)(esbuild@0.28.0)
 
+  packages/example:
+    dependencies:
+      '@sigx/devtools':
+        specifier: workspace:^
+        version: link:../devtools
+      sigx:
+        specifier: ^0.4.4
+        version: 0.4.4
+    devDependencies:
+      '@sigx/vite':
+        specifier: ^0.4.4
+        version: 0.4.4(sigx@0.4.4)(vite@8.0.12(@types/node@22.19.19)(esbuild@0.28.0))
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.0.11
+        version: 8.0.12(@types/node@22.19.19)(esbuild@0.28.0)
+
   packages/extension:
     dependencies:
       '@sigx/devtools':
